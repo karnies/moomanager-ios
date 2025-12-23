@@ -12,6 +12,7 @@ struct StockEditView: View {
     @State private var sellTargetPercent: Double
     @State private var compoundRate: Double
     @State private var currentBuyAmount: String
+    @State private var startDate: Date
 
     init(stock: Stock) {
         self.stock = stock
@@ -20,6 +21,7 @@ struct StockEditView: View {
         _sellTargetPercent = State(initialValue: stock.sellTargetPercent)
         _compoundRate = State(initialValue: stock.compoundRate)
         _currentBuyAmount = State(initialValue: String(format: "%.0f", stock.currentBuyAmount))
+        _startDate = State(initialValue: stock.startDate)
     }
 
     var body: some View {
@@ -34,6 +36,8 @@ struct StockEditView: View {
                     }
 
                     TextField("별칭", text: $nickname)
+
+                    DatePicker("시작일", selection: $startDate, displayedComponents: .date)
                 }
 
                 Section("투자 설정") {
@@ -118,6 +122,7 @@ struct StockEditView: View {
         stock.divisions = Int(divisions)
         stock.sellTargetPercent = sellTargetPercent
         stock.compoundRate = compoundRate
+        stock.startDate = startDate
 
         if let amount = Double(currentBuyAmount), amount > 0 {
             stock.currentBuyAmount = amount

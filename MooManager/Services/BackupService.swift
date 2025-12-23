@@ -244,28 +244,62 @@ class BackupService {
     // MARK: - Helpers
 
     private func parseDate(_ string: String?) -> Date {
-        guard let string = string else { return Date() }
+        guard let string = string, !string.isEmpty else { return Date() }
 
-        // ISO8601 형식 시도
+        // Flutter의 toIso8601String() 형식: 2024-01-15T10:30:00.000Z 또는 2024-01-15T10:30:00.000
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+
+        // 밀리초 + Z 포함
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+        if let date = dateFormatter.date(from: string) {
+            return date
+        }
+
+        // 밀리초 포함 (Z 없음)
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS"
+        if let date = dateFormatter.date(from: string) {
+            return date
+        }
+
+        // 초까지만 + Z
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        if let date = dateFormatter.date(from: string) {
+            return date
+        }
+
+        // 초까지만 (Z 없음)
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        if let date = dateFormatter.date(from: string) {
+            return date
+        }
+
+        // ISO8601DateFormatter 시도
         let iso8601Formatter = ISO8601DateFormatter()
         iso8601Formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let date = iso8601Formatter.date(from: string) {
             return date
         }
 
-        // 기본 ISO8601 형식
         iso8601Formatter.formatOptions = [.withInternetDateTime]
         if let date = iso8601Formatter.date(from: string) {
             return date
         }
 
         // 날짜만 있는 형식
-        let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         if let date = dateFormatter.date(from: string) {
             return date
         }
 
+        // yyyy-MM-dd HH:mm:ss 형식 (Flutter csv_service에서 사용)
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        if let date = dateFormatter.date(from: string) {
+            return date
+        }
+
+        print("Failed to parse date: \(string)")
         return Date()
     }
 }

@@ -105,13 +105,52 @@ struct TradeHistoryView: View {
 struct MonthPicker: View {
     @Binding var selectedMonth: Date
 
+    private var monthYearString: String {
+        Formatters.yearMonth(selectedMonth)
+    }
+
     var body: some View {
-        DatePicker(
-            "월 선택",
-            selection: $selectedMonth,
-            displayedComponents: [.date]
-        )
-        .datePickerStyle(.compact)
+        HStack {
+            Button {
+                moveMonth(by: -1)
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Text(monthYearString)
+                .font(.headline)
+
+            Spacer()
+
+            Button {
+                moveMonth(by: 1)
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+            }
+            .buttonStyle(.plain)
+            .disabled(isCurrentMonth)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var isCurrentMonth: Bool {
+        Calendar.current.isDate(selectedMonth, equalTo: Date(), toGranularity: .month)
+    }
+
+    private func moveMonth(by value: Int) {
+        if let newDate = Calendar.current.date(byAdding: .month, value: value, to: selectedMonth) {
+            // 미래 월로 이동하지 않도록
+            if newDate <= Date() || value < 0 {
+                selectedMonth = newDate
+            }
+        }
     }
 }
 
