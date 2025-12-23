@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @AppStorage("isDarkMode") private var isDarkMode = false
@@ -8,9 +9,13 @@ struct SettingsView: View {
     @AppStorage("hapticFeedback") private var hapticFeedback = true
 
     @Environment(\.modelContext) private var modelContext
-    @State private var showingExportAlert = false
+    @State private var showingAlert = false
     @State private var showingImportPicker = false
+    @State private var showingExportSheet = false
+    @State private var alertTitle = ""
     @State private var alertMessage = ""
+    @State private var isLoading = false
+    @State private var exportData: Data?
 
     var body: some View {
         NavigationStack {
@@ -32,13 +37,25 @@ struct SettingsView: View {
 
                 // 데이터 관리
                 Section("데이터") {
-                    Button("데이터 백업") {
-                        exportData()
+                    Button {
+                        Task {
+                            await exportJSON()
+                        }
+                    } label: {
+                        HStack {
+                            Text("데이터 백업")
+                            if isLoading {
+                                Spacer()
+                                ProgressView()
+                            }
+                        }
                     }
+                    .disabled(isLoading)
 
                     Button("데이터 복원") {
                         showingImportPicker = true
                     }
+                    .disabled(isLoading)
                 }
 
                 // 앱 정보
@@ -63,7 +80,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("설정")
-            .alert("알림", isPresented: $showingExportAlert) {
+            .alert(alertTitle, isPresented: $showingAlert) {
                 Button("확인", role: .cancel) { }
             } message: {
                 Text(alertMessage)
@@ -73,28 +90,113 @@ struct SettingsView: View {
                 allowedContentTypes: [.json],
                 allowsMultipleSelection: false
             ) { result in
-                handleImport(result)
+                Task {
+                    await handleImport(result)
+                }
+            }
+            .fileExporter(
+                isPresented: $showingExportSheet,
+                document: JSONDocument(data: exportData ?? Data()),
+                contentType: .json,
+                defaultFilename: "moomanager_backup_\(dateString()).json"
+            ) { result in
+                switch result {
+                case .success(let url):
+                    alertTitle = "백업 완료"
+                    alertMessage = "백업 파일이 저장되었습니다"
+                    showingAlert = true
+                case .failure(let error):
+                    alertTitle = "백업 실패"
+                    alertMessage = error.localizedDescription
+                    showingAlert = true
+                }
             }
         }
     }
 
-    private func exportData() {
-        // TODO: Implement JSON export
-        alertMessage = "백업 기능은 추후 지원 예정입니다"
-        showingExportAlert = true
+    private func exportJSON() async {
+        isLoading = true
+
+        do {
+            let backupService = BackupService(modelContext: modelContext)
+            let data = try await backupService.exportToJSON()
+            exportData = data
+            showingExportSheet = true
+        } catch {
+            alertTitle = "백업 실패"
+            alertMessage = error.localizedDescription
+            showingAlert = true
+        }
+
+        isLoading = false
     }
 
-    private func handleImport(_ result: Result<[URL], Error>) {
+    private func handleImport(_ result: Result<[URL], Error>) async {
         switch result {
         case .success(let urls):
             guard let url = urls.first else { return }
-            // TODO: Implement JSON import
-            alertMessage = "복원 기능은 추후 지원 예정입니다"
-            showingExportAlert = true
+
+            isLoading = true
+
+            // 파일 접근 권한 획득
+            guard url.startAccessingSecurityScopedResource() else {
+                alertTitle = "오류"
+                alertMessage = "파일에 접근할 수 없습니다"
+                showingAlert = true
+                isLoading = false
+                return
+            }
+
+            defer {
+                url.stopAccessingSecurityScopedResource()
+            }
+
+            do {
+                let backupService = BackupService(modelContext: modelContext)
+                let result = try await backupService.importFromJSON(url: url)
+
+                alertTitle = "복원 완료"
+                alertMessage = "종목 \(result.stocks)개, 매매 \(result.trades)건, 정산 \(result.settlements)건이 복원되었습니다"
+                showingAlert = true
+            } catch {
+                alertTitle = "복원 실패"
+                alertMessage = error.localizedDescription
+                showingAlert = true
+            }
+
+            isLoading = false
+
         case .failure(let error):
+            alertTitle = "오류"
             alertMessage = "파일을 열 수 없습니다: \(error.localizedDescription)"
-            showingExportAlert = true
+            showingAlert = true
         }
+    }
+
+    private func dateString() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        return formatter.string(from: Date())
+    }
+}
+
+// MARK: - JSON Document for Export
+
+struct JSONDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+
+    var data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
     }
 }
 

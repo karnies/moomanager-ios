@@ -16,6 +16,7 @@
 		6D1122D354EE2B9A20DF6B55 /* StockSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA189D746EB3D13835B83DF7 /* StockSummary.swift */; };
 		7607E9047AB25C7EDF05EFF9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0610434F98665E3D9E00529F /* SettingsView.swift */; };
 		88031612F20570AAC344FE3D /* PortfolioViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 548853A7C09B8C9992EAB8B9 /* PortfolioViewModel.swift */; };
+		9CDDBAAAD2B4F37FAA85A180 /* BackupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 923A16F9CEC1CC9730CD23ED /* BackupService.swift */; };
 		9DA9707C27000249F1416B2E /* YahooFinanceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD3A3F504B2109283F5E3864 /* YahooFinanceService.swift */; };
 		A01609934E90155FB080CC92 /* SettlementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E388F17EA742B333ACB806F9 /* SettlementView.swift */; };
 		A6362A3920C15E00B1E655C8 /* TradeAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05B7ED064662C754092D079C /* TradeAddView.swift */; };
@@ -44,6 +45,7 @@
 		587F485711215FAB7696BEEC /* Trade.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trade.swift; sourceTree = "<group>"; };
 		7EEA4EA5602A451920AD808E /* StockSelectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockSelectView.swift; sourceTree = "<group>"; };
 		85B45CD2A103147FE207A7A5 /* MooManager.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MooManager.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		923A16F9CEC1CC9730CD23ED /* BackupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupService.swift; sourceTree = "<group>"; };
 		9C3270D30FC6F0F0FBD154A4 /* AppSetting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSetting.swift; sourceTree = "<group>"; };
 		A27BB1B8946D041BCA6EA090 /* StockAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockAddView.swift; sourceTree = "<group>"; };
 		B4562FD1A38C6FF8C7E8FC39 /* Stock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Stock.swift; sourceTree = "<group>"; };
@@ -161,6 +163,7 @@
 		A7331B16CCAB957F4128D155 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				923A16F9CEC1CC9730CD23ED /* BackupService.swift */,
 				DD3A3F504B2109283F5E3864 /* YahooFinanceService.swift */,
 			);
 			path = Services;
@@ -261,6 +264,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B6585A50EA049AF3F401450D /* AppSetting.swift in Sources */,
+				9CDDBAAAD2B4F37FAA85A180 /* BackupService.swift in Sources */,
 				E5552BC65064E860A0897340 /* ContentView.swift in Sources */,
 				F2E2FF137173499D525B7694 /* Formatters.swift in Sources */,
 				3E5AD50221022429AE9209CA /* HomeView.swift in Sources */,
