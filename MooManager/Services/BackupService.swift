@@ -31,6 +31,9 @@ class BackupService {
             throw BackupError.invalidFormat
         }
 
+        // 기존 데이터 삭제 (중복 방지)
+        try await deleteAllData()
+
         // ID 매핑 (Flutter oldId -> Swift newStock)
         var stockIdMapping: [Int: Stock] = [:]
 
@@ -80,9 +83,13 @@ class BackupService {
                     let tradeTypeStr = tradeData["tradeType"] as? String ?? "BUY"
                     let orderTypeStr = tradeData["orderType"] as? String ?? "LOC"
 
+                    // 날짜만 저장 (시간 제거)
+                    let parsedDate = parseDate(tradeData["tradeDate"] as? String)
+                    let dateOnly = Calendar.current.startOfDay(for: parsedDate)
+
                     let trade = Trade(
                         stock: stock,
-                        tradeDate: parseDate(tradeData["tradeDate"] as? String),
+                        tradeDate: dateOnly,
                         tradeType: TradeType(rawValue: tradeTypeStr) ?? .buy,
                         orderType: OrderType(rawValue: orderTypeStr) ?? .loc,
                         price: (tradeData["price"] as? NSNumber)?.doubleValue ?? 0,
@@ -242,6 +249,31 @@ class BackupService {
     }
 
     // MARK: - Helpers
+
+    private func deleteAllData() async throws {
+        // 관계가 있는 모델은 개별 삭제해야 함
+        let trades = try modelContext.fetch(FetchDescriptor<Trade>())
+        for trade in trades {
+            modelContext.delete(trade)
+        }
+
+        let settlements = try modelContext.fetch(FetchDescriptor<Settlement>())
+        for settlement in settlements {
+            modelContext.delete(settlement)
+        }
+
+        let prices = try modelContext.fetch(FetchDescriptor<StockPrice>())
+        for price in prices {
+            modelContext.delete(price)
+        }
+
+        let stocks = try modelContext.fetch(FetchDescriptor<Stock>())
+        for stock in stocks {
+            modelContext.delete(stock)
+        }
+
+        try modelContext.save()
+    }
 
     private func parseDate(_ string: String?) -> Date {
         guard let string = string, !string.isEmpty else { return Date() }

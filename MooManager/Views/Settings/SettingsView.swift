@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var showingAlert = false
     @State private var showingImportPicker = false
     @State private var showingExportSheet = false
+    @State private var showingResetConfirm = false
     @State private var alertTitle = ""
     @State private var alertMessage = ""
     @State private var isLoading = false
@@ -56,6 +57,30 @@ struct SettingsView: View {
                         showingImportPicker = true
                     }
                     .disabled(isLoading)
+
+                    Button("데이터 초기화", role: .destructive) {
+                        showingResetConfirm = true
+                    }
+                    .disabled(isLoading)
+                }
+
+                // 휴장일 데이터 경고
+                if !USMarketHolidays.hasHolidaysForNextYear() {
+                    Section {
+                        HStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("휴장일 데이터 업데이트 필요")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Text("다음 연도 미국 휴장일 정보가 없습니다. 앱 업데이트가 필요합니다.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
                 }
 
                 // 앱 정보
@@ -84,6 +109,14 @@ struct SettingsView: View {
                 Button("확인", role: .cancel) { }
             } message: {
                 Text(alertMessage)
+            }
+            .alert("데이터 초기화", isPresented: $showingResetConfirm) {
+                Button("취소", role: .cancel) { }
+                Button("초기화", role: .destructive) {
+                    resetAllData()
+                }
+            } message: {
+                Text("모든 종목, 매매이력, 정산이력이 삭제됩니다.\n이 작업은 되돌릴 수 없습니다.")
             }
             .fileImporter(
                 isPresented: $showingImportPicker,
@@ -177,6 +210,45 @@ struct SettingsView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmmss"
         return formatter.string(from: Date())
+    }
+
+    private func resetAllData() {
+        do {
+            // 관계가 있는 모델은 개별 삭제해야 함
+            // 1. 모든 Trade 개별 삭제
+            let trades = try modelContext.fetch(FetchDescriptor<Trade>())
+            for trade in trades {
+                modelContext.delete(trade)
+            }
+
+            // 2. 모든 Settlement 개별 삭제
+            let settlements = try modelContext.fetch(FetchDescriptor<Settlement>())
+            for settlement in settlements {
+                modelContext.delete(settlement)
+            }
+
+            // 3. 모든 StockPrice 삭제
+            let prices = try modelContext.fetch(FetchDescriptor<StockPrice>())
+            for price in prices {
+                modelContext.delete(price)
+            }
+
+            // 4. 모든 Stock 삭제
+            let stocks = try modelContext.fetch(FetchDescriptor<Stock>())
+            for stock in stocks {
+                modelContext.delete(stock)
+            }
+
+            try modelContext.save()
+
+            alertTitle = "초기화 완료"
+            alertMessage = "모든 데이터가 삭제되었습니다"
+            showingAlert = true
+        } catch {
+            alertTitle = "초기화 실패"
+            alertMessage = error.localizedDescription
+            showingAlert = true
+        }
     }
 }
 

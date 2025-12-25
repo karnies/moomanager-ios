@@ -57,11 +57,11 @@ struct StockSummary: Identifiable {
 
     // 매수 가이드
     var starBuyPrice: Double {
-        averagePrice * (1 + starPercent / 100) - 0.01
+        averagePrice * (1 + starPercent / 100)
     }
 
     var averageBuyPrice: Double {
-        averagePrice - 0.01
+        averagePrice
     }
 
     var starBuyQuantity: Int {

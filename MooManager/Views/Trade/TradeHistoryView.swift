@@ -7,6 +7,9 @@ struct TradeHistoryView: View {
 
     @State private var selectedMonth: Date = Date()
     @State private var showingAddTrade = false
+    @State private var tradeToEdit: Trade?
+    @State private var tradeToDelete: Trade?
+    @State private var showingDeleteConfirm = false
 
     private var filteredTrades: [Trade] {
         let calendar = Calendar.current
@@ -78,6 +81,21 @@ struct TradeHistoryView: View {
                             Section(Formatters.fullDate(date)) {
                                 ForEach(trades) { trade in
                                     TradeRow(trade: trade)
+                                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                            Button(role: .destructive) {
+                                                tradeToDelete = trade
+                                                showingDeleteConfirm = true
+                                            } label: {
+                                                Label("삭제", systemImage: "trash")
+                                            }
+
+                                            Button {
+                                                tradeToEdit = trade
+                                            } label: {
+                                                Label("수정", systemImage: "pencil")
+                                            }
+                                            .tint(.orange)
+                                        }
                                 }
                             }
                         }
@@ -97,7 +115,30 @@ struct TradeHistoryView: View {
             .sheet(isPresented: $showingAddTrade) {
                 TradeAddView()
             }
+            .sheet(item: $tradeToEdit) { trade in
+                TradeEditView(trade: trade)
+            }
+            .alert("매매 기록 삭제", isPresented: $showingDeleteConfirm) {
+                Button("취소", role: .cancel) {
+                    tradeToDelete = nil
+                }
+                Button("삭제", role: .destructive) {
+                    if let trade = tradeToDelete {
+                        deleteTrade(trade)
+                    }
+                }
+            } message: {
+                if let trade = tradeToDelete {
+                    Text("\(trade.stock?.symbol ?? "")의 \(trade.tradeTypeEnum.displayName) 기록을 삭제하시겠습니까?")
+                }
+            }
         }
+    }
+
+    private func deleteTrade(_ trade: Trade) {
+        modelContext.delete(trade)
+        try? modelContext.save()
+        tradeToDelete = nil
     }
 }
 

@@ -8,6 +8,15 @@ struct StockAddView: View {
     let symbol: String
     let currentPrice: Double
 
+    // 같은 심볼로 활성화된 종목이 있는지 확인
+    private var hasActiveStockWithSameSymbol: Bool {
+        let targetSymbol = symbol
+        let descriptor = FetchDescriptor<Stock>(
+            predicate: #Predicate { $0.symbol == targetSymbol && $0.isActive }
+        )
+        return (try? modelContext.fetchCount(descriptor)) ?? 0 > 0
+    }
+
     @State private var nickname = ""
     @State private var version = "v3.0"
     @State private var seedMoney = ""
@@ -43,7 +52,13 @@ struct StockAddView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    TextField("별칭 (선택)", text: $nickname)
+                    HStack {
+                        TextField(hasActiveStockWithSameSymbol ? "별칭 (필수)" : "별칭 (선택)", text: $nickname)
+                        if hasActiveStockWithSameSymbol && nickname.isEmpty {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundStyle(.red)
+                        }
+                    }
                 }
 
                 // 버전 선택
@@ -137,7 +152,7 @@ struct StockAddView: View {
                         saveStock()
                     }
                     .fontWeight(.semibold)
-                    .disabled(seedMoney.isEmpty)
+                    .disabled(seedMoney.isEmpty || (hasActiveStockWithSameSymbol && nickname.isEmpty))
                 }
             }
             .alert("오류", isPresented: $showingAlert) {
@@ -161,6 +176,12 @@ struct StockAddView: View {
     private func saveStock() {
         guard let seed = Double(seedMoney), seed > 0 else {
             alertMessage = "시드머니를 입력해주세요"
+            showingAlert = true
+            return
+        }
+
+        if hasActiveStockWithSameSymbol && nickname.isEmpty {
+            alertMessage = "같은 티커의 활성화된 종목이 있습니다. 별칭을 입력해주세요."
             showingAlert = true
             return
         }

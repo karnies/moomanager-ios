@@ -41,7 +41,7 @@ actor YahooFinanceService {
             throw YahooFinanceError.invalidResponse
         }
 
-        // 전일 종가 및 날짜 추출
+        // 직전 거래일 종가 및 날짜 추출
         var previousClose = meta["previousClose"] as? Double ?? regularMarketPrice
         var previousCloseDate: Date?
 
@@ -51,17 +51,33 @@ actor YahooFinanceService {
            let closes = quote["close"] as? [Double?],
            let timestamps = result["timestamp"] as? [Int] {
 
-            // 마지막에서 두 번째 완료된 거래일의 종가
             let validCloses = closes.compactMap { $0 }
-            if validCloses.count >= 2 {
-                previousClose = validCloses[validCloses.count - 2]
 
-                // 종가 날짜
-                let validTimestamps = timestamps.suffix(validCloses.count)
-                if validTimestamps.count >= 2 {
-                    let index = validTimestamps.count - 2
-                    let timestamp = Array(validTimestamps)[index]
-                    previousCloseDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
+            // 오늘이 거래일인지 확인 (미국 동부시간 기준)
+            let now = Date()
+            let isTodayTradingDay = USMarketHolidays.isTradingDay(now)
+
+            if isTodayTradingDay {
+                // 오늘이 거래일이면: 마지막에서 두 번째 = 전일 종가
+                if validCloses.count >= 2 {
+                    previousClose = validCloses[validCloses.count - 2]
+
+                    let validTimestamps = timestamps.suffix(validCloses.count)
+                    if validTimestamps.count >= 2 {
+                        let index = validTimestamps.count - 2
+                        let timestamp = Array(validTimestamps)[index]
+                        previousCloseDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
+                    }
+                }
+            } else {
+                // 오늘이 휴장일/주말이면: 마지막 데이터 = 직전 거래일 종가
+                if !validCloses.isEmpty {
+                    previousClose = validCloses[validCloses.count - 1]
+
+                    if !timestamps.isEmpty {
+                        let timestamp = timestamps[timestamps.count - 1]
+                        previousCloseDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
+                    }
                 }
             }
         }

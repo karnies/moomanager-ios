@@ -50,7 +50,8 @@ final class Trade {
         fee: Double = 0
     ) {
         self.stock = stock
-        self.tradeDate = tradeDate
+        // 시간 제거, 날짜만 저장
+        self.tradeDate = Calendar.current.startOfDay(for: tradeDate)
         self.tradeType = tradeType.rawValue
         self.orderType = orderType.rawValue
         self.price = price

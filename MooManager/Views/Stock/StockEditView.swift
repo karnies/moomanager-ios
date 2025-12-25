@@ -8,15 +8,19 @@ struct StockEditView: View {
     @Bindable var stock: Stock
 
     @State private var nickname: String
+    @State private var version: String
     @State private var divisions: Double
     @State private var sellTargetPercent: Double
     @State private var compoundRate: Double
     @State private var currentBuyAmount: String
     @State private var startDate: Date
 
+    private let versions = ["v2.2", "v3.0"]
+
     init(stock: Stock) {
         self.stock = stock
         _nickname = State(initialValue: stock.nickname ?? "")
+        _version = State(initialValue: stock.version)
         _divisions = State(initialValue: Double(stock.divisions))
         _sellTargetPercent = State(initialValue: stock.sellTargetPercent)
         _compoundRate = State(initialValue: stock.compoundRate)
@@ -36,6 +40,15 @@ struct StockEditView: View {
                     }
 
                     TextField("별칭", text: $nickname)
+
+                    Picker("버전", selection: $version) {
+                        ForEach(versions, id: \.self) { v in
+                            Text(v).tag(v)
+                        }
+                    }
+                    .onChange(of: version) { _, newVersion in
+                        applyVersionDefaults(newVersion)
+                    }
 
                     DatePicker("시작일", selection: $startDate, displayedComponents: .date)
                 }
@@ -61,7 +74,7 @@ struct StockEditView: View {
                         Slider(value: $sellTargetPercent, in: 5...30, step: 1)
                     }
 
-                    if stock.version == "v3.0" {
+                    if version == "v3.0" {
                         VStack(alignment: .leading) {
                             HStack {
                                 Text("반복리 비율")
@@ -110,7 +123,11 @@ struct StockEditView: View {
     }
 
     private func resetToDefaults() {
-        let defaults = Stock.defaultSettings(for: stock.symbol, version: stock.version)
+        applyVersionDefaults(version)
+    }
+
+    private func applyVersionDefaults(_ newVersion: String) {
+        let defaults = Stock.defaultSettings(for: stock.symbol, version: newVersion)
         divisions = Double(defaults.divisions)
         sellTargetPercent = defaults.sellTargetPercent
         compoundRate = defaults.compoundRate
@@ -119,6 +136,7 @@ struct StockEditView: View {
 
     private func saveChanges() {
         stock.nickname = nickname.isEmpty ? nil : nickname
+        stock.version = version
         stock.divisions = Int(divisions)
         stock.sellTargetPercent = sellTargetPercent
         stock.compoundRate = compoundRate
