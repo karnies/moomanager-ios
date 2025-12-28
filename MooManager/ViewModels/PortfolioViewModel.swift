@@ -98,8 +98,6 @@ class PortfolioViewModel {
             let quote = try await YahooFinanceService.shared.getQuote(symbol: symbol)
             let rsiData = try? await YahooFinanceService.shared.getRsiData(symbol: symbol)
 
-            print("📈 [\(symbol)] API 응답 - 종가: \(quote.previousClose), 날짜: \(String(describing: quote.previousCloseDate))")
-
             // 저장 또는 업데이트
             if let existing = cachedPrices.first {
                 existing.closePrice = quote.previousClose

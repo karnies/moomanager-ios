@@ -36,6 +36,10 @@ final class StockPrice {
         }
         calendar.timeZone = koreaTimeZone
 
+        // 미국 동부시간 캘린더
+        var usCalendar = Calendar(identifier: .gregorian)
+        usCalendar.timeZone = TimeZone(identifier: "America/New_York")!
+
         let now = Date()
         let koreaHour = calendar.component(.hour, from: now)
 
@@ -46,7 +50,18 @@ final class StockPrice {
         // 현재 시점 기준 마지막 거래일 계산 (주말 + 휴장일 고려)
         let lastTradingDay = USMarketHolidays.lastTradingDay(before: now)
 
-        // 마지막 거래일의 장 마감 시간 (한국시간 오전 7시)
+        // 저장된 종가 날짜가 마지막 거래일과 같은지 확인 (가장 확실한 방법)
+        if let savedDate = closePriceDate {
+            let savedDay = usCalendar.startOfDay(for: savedDate)
+            let lastDay = usCalendar.startOfDay(for: lastTradingDay)
+
+            // 저장된 종가가 마지막 거래일 종가면 fresh
+            if savedDay >= lastDay {
+                return false
+            }
+        }
+
+        // closePriceDate가 없거나 오래된 경우: 기존 로직으로 fallback
         guard let lastTradingDayKST = convertToKoreaTime(lastTradingDay, calendar: calendar),
               let lastMarketClose = calendar.date(byAdding: .day, value: 1, to: lastTradingDayKST),
               let lastMarketCloseTime = calendar.date(bySettingHour: marketCloseHourKST, minute: 0, second: 0, of: lastMarketClose) else {
