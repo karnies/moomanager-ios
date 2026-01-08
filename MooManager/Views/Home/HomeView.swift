@@ -3,6 +3,7 @@ import SwiftData
 
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel = PortfolioViewModel()
     @State private var showingAddStock = false
 
@@ -66,6 +67,18 @@ struct HomeView: View {
         .task {
             viewModel.setModelContext(modelContext)
             await viewModel.loadPortfolio()
+        }
+        .onAppear {
+            Task {
+                await viewModel.loadPortfolio()
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                Task {
+                    await viewModel.loadPortfolio()
+                }
+            }
         }
     }
 }

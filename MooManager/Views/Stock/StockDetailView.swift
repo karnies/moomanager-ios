@@ -144,6 +144,9 @@ struct StockDetailView: View {
         // 누적 수익 업데이트
         stock.accumulatedProfit += settlement.profit
 
+        // 종목 비활성화 (포트폴리오에서 숨김)
+        stock.isActive = false
+
         // 반복리 적용
         if stock.compoundRate > 0 {
             stock.currentBuyAmount = InfiniteBuyingCalculations.calculateNewBuyAmount(
@@ -156,6 +159,7 @@ struct StockDetailView: View {
         }
 
         try? modelContext.save()
+        dismiss()
     }
 
     private func deleteStock() {

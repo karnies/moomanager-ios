@@ -53,12 +53,15 @@ actor YahooFinanceService {
 
             let validCloses = closes.compactMap { $0 }
 
-            // 오늘이 거래일인지 확인 (미국 동부시간 기준)
+            // 오늘이 거래일이고 장이 마감되었는지 확인 (미국 동부시간 기준)
             let now = Date()
             let isTodayTradingDay = USMarketHolidays.isTradingDay(now)
+            let isMarketClosed = Self.isMarketClosed(now)
 
-            if isTodayTradingDay {
-                // 오늘이 거래일이면: 마지막에서 두 번째 = 전일 종가
+            // 오늘이 거래일이고 장이 마감된 경우에만 마지막에서 두 번째 사용
+            // (마지막 데이터가 오늘 종가이므로)
+            if isTodayTradingDay && isMarketClosed {
+                // 장 마감 후: 마지막에서 두 번째 = 전일 종가
                 if validCloses.count >= 2 {
                     previousClose = validCloses[validCloses.count - 2]
 
@@ -70,7 +73,7 @@ actor YahooFinanceService {
                     }
                 }
             } else {
-                // 오늘이 휴장일/주말이면: 마지막 데이터 = 직전 거래일 종가
+                // 장 마감 전 또는 휴장일/주말: 마지막 데이터 = 직전 거래일 종가
                 if !validCloses.isEmpty {
                     previousClose = validCloses[validCloses.count - 1]
 
@@ -149,6 +152,21 @@ actor YahooFinanceService {
     }
 
     // MARK: - Private Methods
+
+    /// 미국 주식시장이 마감되었는지 확인 (서머타임 자동 적용)
+    /// - 미국 동부시간(America/New_York) 기준 오후 4시 이후면 마감
+    /// - TimeZone이 자동으로 EDT/EST 서머타임 처리
+    private static func isMarketClosed(_ date: Date) -> Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        guard let easternTimeZone = TimeZone(identifier: "America/New_York") else {
+            return false
+        }
+        calendar.timeZone = easternTimeZone
+
+        let hour = calendar.component(.hour, from: date)
+        // 미국 장 마감: 오후 4시 (16시)
+        return hour >= 16
+    }
 
     private func calculateRsi(closes: [Double], period: Int) -> Double {
         guard closes.count > period else { return 50 }
